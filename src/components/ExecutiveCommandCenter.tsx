@@ -61,7 +61,9 @@ export function ExecutiveCommandCenter({ data }: ExecutiveCommandCenterProps) {
               </div>
               <div>
                 <p className="text-[10px] text-lo-muted uppercase font-bold tracking-widest mb-1">Conversion</p>
-                <p className="text-3xl font-black text-lo-text">3.2%</p>
+                <p className="text-3xl font-black text-lo-text">
+                  {orders && data.totalViews > 0 ? ((orders.orderVolume / data.totalViews) * 100).toFixed(1) : '0'}%
+                </p>
               </div>
               <div>
                 <p className="text-[10px] text-lo-muted uppercase font-bold tracking-widest mb-1">Retention</p>
@@ -84,7 +86,9 @@ export function ExecutiveCommandCenter({ data }: ExecutiveCommandCenterProps) {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-lo-muted">Abandoned Value</span>
                   <span className="text-[10px] font-black px-2 py-0.5 rounded bg-rose-500/20 text-rose-400">CRITICAL</span>
                 </div>
-                <p className="text-2xl font-black text-lo-text">₱142,500</p>
+                <p className="text-2xl font-black text-lo-text">
+                  {formatCurrency(linked.reduce((sum, item) => sum + (item.revenue * 0.22), 0))}
+                </p>
               </div>
               <div className="p-5 rounded-2xl bg-white/5 border border-white/5 glass-card-hover">
                 <div className="flex justify-between items-center mb-1">
@@ -136,10 +140,34 @@ export function ExecutiveCommandCenter({ data }: ExecutiveCommandCenterProps) {
 
       {/* Real-time Pulse Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Active Pulse" value="482" unit="Users" icon={<Activity className="h-4 w-4" />} color="emerald" />
-        <StatCard title="UX Sentiment" value="8.4" unit="/10" icon={<Heart className="h-4 w-4" />} color="rose" />
-        <StatCard title="Load Velocity" value="1.2" unit="sec" icon={<Zap className="h-4 w-4" />} color="amber" />
-        <StatCard title="Segments" value="12" unit="active" icon={<Layers className="h-4 w-4" />} color="lo-accent" />
+        <StatCard 
+          title="Total Reach" 
+          value={data.totalViews.toLocaleString()} 
+          unit="Views" 
+          icon={<Users className="h-4 w-4" />} 
+          color="emerald" 
+        />
+        <StatCard 
+          title="UX Sentiment" 
+          value={(data.overallHealth / 10).toFixed(1)} 
+          unit="/10" 
+          icon={<Heart className="h-4 w-4" />} 
+          color="rose" 
+        />
+        <StatCard 
+          title="Avg Session" 
+          value={Math.round(audit?.sessionDurationAvg || 124).toString()} 
+          unit="sec" 
+          icon={<Zap className="h-4 w-4" />} 
+          color="amber" 
+        />
+        <StatCard 
+          title="Segments" 
+          value={data.categories.length.toString()} 
+          unit="active" 
+          icon={<Layers className="h-4 w-4" />} 
+          color="lo-accent" 
+        />
       </div>
     </div>
   );
