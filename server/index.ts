@@ -3,7 +3,9 @@
  * Supports GROQ_API_KEY (preferred) and GEMINI_API_KEY (fallback).
  * Run: npm run dev:api  (or use npm run dev:full with Vite + this server)
  */
-import 'dotenv/config';
+if (!process.env.VERCEL) {
+  await import('dotenv/config');
+}
 import express from 'express';
 import { GoogleGenAI } from '@google/genai';
 
@@ -213,6 +215,8 @@ ${question}
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`[api] http://localhost:${PORT}  (POST /api/explain, GET /api/health)`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`[api] http://localhost:${PORT}  (POST /api/explain, GET /api/health)`);
+  });
+}
