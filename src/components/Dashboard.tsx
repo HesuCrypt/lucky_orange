@@ -282,7 +282,7 @@ export function Dashboard() {
                       <AlertFeed pages={data.topCriticalPages} isLimited={data.isLimitedData} />
                     </div>
                     <div className="space-y-8">
-                      <ImportIssuesPanel meta={data.importMeta} />
+                      {data.importMeta && <ImportIssuesPanel meta={data.importMeta} />}
                     </div>
                   </div>
                 </>
