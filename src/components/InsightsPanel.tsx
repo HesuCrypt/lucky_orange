@@ -22,8 +22,24 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
   useEffect(() => {
     let active = true;
     const refresh = async () => {
-      const ok = await checkExplainApi();
-      if (active) setExplainOk(ok);
+      try {
+        const r = await fetch('/api/health');
+        if (!r.ok) {
+          setAiErr(`HTTP ${r.status}`);
+          setExplainOk(false);
+          return;
+        }
+        const j = await r.json();
+        if (active) {
+          setExplainOk(Boolean(j.gemini));
+          setAiErr(j.gemini ? 'Ready' : 'Keys Missing on Server');
+        }
+      } catch (err) {
+        if (active) {
+          setAiErr('Network Error');
+          setExplainOk(false);
+        }
+      }
     };
 
     // Initial check + periodic retry so UI recovers if API starts later.
@@ -128,11 +144,16 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
             </button>
           </div>
         ) : (
-          <p className="max-w-xs text-right text-xs text-lo-muted">
-            AI explanation unavailable (start <code className="rounded bg-lo-elevated px-1">npm run dev:api</code> with{' '}
-            <code className="rounded bg-lo-elevated px-1">GROQ_API_KEY</code> or{' '}
-            <code className="rounded bg-lo-elevated px-1">GEMINI_API_KEY</code>).
-          </p>
+          <div className="text-right">
+            <p className="max-w-xs text-xs text-lo-muted">
+              AI explanation unavailable (start <code className="rounded bg-lo-elevated px-1">npm run dev:api</code> with{' '}
+              <code className="rounded bg-lo-elevated px-1">GROQ_API_KEY</code> or{' '}
+              <code className="rounded bg-lo-elevated px-1">GEMINI_API_KEY</code>).
+            </p>
+            <p className="mt-1 text-[10px] text-lo-muted/40 uppercase tracking-widest">
+              Server Status: {aiErr || 'Checking...'}
+            </p>
+          </div>
         )}
       </div>
 

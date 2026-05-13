@@ -56,7 +56,7 @@ async function generateWithProvider(
   return text;
 }
 
-app.get('/api/health', (_req, res) => {
+app.get(['/api/health', '/health'], (_req, res) => {
   const groq = Boolean(process.env.GROQ_API_KEY?.trim());
   const geminiRaw = process.env.GEMINI_API_KEY?.trim();
   const gemini = Boolean(geminiRaw) && !looksLikeGroqKey(geminiRaw);
@@ -68,7 +68,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-app.post('/api/explain', async (req, res) => {
+app.post(['/api/explain', '/explain'], async (req, res) => {
   const groqApiKey = process.env.GROQ_API_KEY?.trim();
   const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
   const provider = groqApiKey ? 'groq' : geminiApiKey ? 'gemini' : null;
@@ -158,7 +158,7 @@ ${bullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}
   }
 });
 
-app.post('/api/chat', async (req, res) => {
+app.post(['/api/chat', '/chat'], async (req, res) => {
   const groqApiKey = process.env.GROQ_API_KEY?.trim();
   const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
   const provider = groqApiKey ? 'groq' : geminiApiKey ? 'gemini' : null;
