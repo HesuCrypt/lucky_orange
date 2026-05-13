@@ -12,7 +12,7 @@ import {
   Cloud,
 } from 'lucide-react';
 import { DashboardData } from '../types';
-import { getMockData, parseCSV, processAnalyticsData } from '../utils/dataProcessor';
+import { parseCSV, processAnalyticsData, mergeDashboardData } from '../utils/dataProcessor';
 import { HeroHeader } from './HeroHeader';
 import { AlertFeed } from './AlertFeed';
 import { InsightsPanel } from './InsightsPanel';
@@ -68,12 +68,10 @@ export function Dashboard() {
           setData(JSON.parse(cachedData));
           setIsUserData(cachedIsUserData === 'true');
         } else {
-          const mockData = getMockData();
-          setData(mockData);
+          setData(null);
         }
       } catch (err) {
-        setError('Failed to load initial data. Falling back to sample data.');
-        setData(getMockData());
+        setData(null);
       } finally {
         setIsLoading(false);
       }
@@ -82,22 +80,31 @@ export function Dashboard() {
   }, []);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files: File[] = Array.from(event.target.files || []);
+    if (files.length === 0) return;
 
     setIsLoading(true);
     setError(null);
     setShowSuccess(false);
 
     try {
-      const text = await file.text();
-      const parsedData = await parseCSV(text, file.name);
-      setData(parsedData);
+      const parsedDatasets: DashboardData[] = [];
+      const fileNames: string[] = [];
+
+      for (const file of files) {
+        const text = await file.text();
+        const parsedData = await parseCSV(text, file.name);
+        parsedDatasets.push(parsedData);
+        fileNames.push(file.name);
+      }
+
+      const mergedData = mergeDashboardData(parsedDatasets);
+      setData(mergedData);
       setIsUserData(true);
-      appendAudit('upload', file.name);
+      appendAudit('upload', fileNames.join(', '));
 
       try {
-        localStorage.setItem('lo_dashboard_data', JSON.stringify(parsedData));
+        localStorage.setItem('lo_dashboard_data', JSON.stringify(mergedData));
         localStorage.setItem('lo_dashboard_is_user_data', 'true');
       } catch (e) {
         console.warn('Could not save to localStorage (file might be too large)');
@@ -106,7 +113,7 @@ export function Dashboard() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 4000);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to parse CSV file.';
+      const message = err instanceof Error ? err.message : 'Failed to parse CSV file(s).';
       setError(message);
       console.error('CSV Parsing Error:', err);
     } finally {
@@ -116,16 +123,11 @@ export function Dashboard() {
   };
 
   const handleReset = () => {
-    const mockData = getMockData();
-    if (mockData.dataSource) {
-      mockData.dataSource.sourceKind = 'sample';
-      mockData.dataSource.syncedAt = undefined;
-    }
-    setData(mockData);
+    setData(null);
     setIsUserData(false);
     setError(null);
     setShowSuccess(false);
-    appendAudit('reset', 'Sample data');
+    appendAudit('reset', 'Clear data');
 
     try {
       localStorage.removeItem('lo_dashboard_data');
@@ -268,7 +270,7 @@ export function Dashboard() {
             <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-lo-border bg-lo-elevated px-4 py-2.5 text-sm font-medium transition-colors hover:bg-lo-elevated-hover sm:flex-none md:flex-none">
               <Upload className="h-4 w-4 text-lo-accent" aria-hidden />
               <span>{t('uploadCsv')}</span>
-              <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+              <input ref={fileInputRef} type="file" accept=".csv" multiple className="hidden" onChange={handleFileUpload} />
             </label>
 
             <button

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Activity, AlertTriangle, TrendingUp, BarChart3, Sparkles } from 'lucide-react';
+import { Activity, AlertTriangle, TrendingUp, TrendingDown, BarChart3, Sparkles, Users } from 'lucide-react';
 import { DashboardData } from '../types';
 import { cn } from '../lib/utils';
 import { useLocale } from '../context/LocaleContext';
@@ -42,7 +42,7 @@ export function HeroHeader({ data }: HeroHeaderProps) {
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -186,8 +186,14 @@ export function HeroHeader({ data }: HeroHeaderProps) {
               {t('totalPrefix')} {countLabel}
             </h2>
           </div>
-          <div className="relative z-10 text-4xl font-bold text-lo-text">
+          <div className="relative z-10 text-4xl font-bold text-lo-text flex items-baseline gap-2">
             {new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(data.totalViews)}
+            {data.viewsTrend !== undefined && (
+              <span className={cn('text-sm font-medium flex items-center', data.viewsTrend > 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                {data.viewsTrend > 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
+                {Math.abs(data.viewsTrend)}% vs last 7d
+              </span>
+            )}
           </div>
         </motion.div>
 
@@ -239,6 +245,33 @@ export function HeroHeader({ data }: HeroHeaderProps) {
             </>
           )}
         </motion.div>
+        
+        {data.activeUsers !== undefined && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="relative flex flex-col justify-center overflow-hidden rounded-3xl border border-lo-border bg-lo-panel p-6 shadow-lg md:col-span-3 lg:col-span-1"
+          >
+            <div className="absolute -bottom-8 -right-8 h-32 w-32 rounded-full bg-emerald-500/10 blur-2xl" />
+            <div className="relative z-10 mb-2 flex items-center gap-4">
+              <div className="relative rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="absolute inset-0 rounded-2xl bg-emerald-500/20"
+                />
+                <Users className="relative z-10 h-6 w-6 text-emerald-400" />
+              </div>
+              <h2 className="text-xs font-medium uppercase tracking-wider text-lo-muted">
+                Active Users Right Now
+              </h2>
+            </div>
+            <div className="relative z-10 text-4xl font-bold text-lo-text">
+              {data.activeUsers}
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

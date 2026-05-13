@@ -13,6 +13,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Lightbulb,
+  TrendingUp,
+  TrendingDown,
+  Monitor,
+  Smartphone,
+  Tablet,
+  PlayCircle,
+  Map,
 } from 'lucide-react';
 import { PageMetrics, HealthStatus, DataSource } from '../types';
 import { cn } from '../lib/utils';
@@ -267,6 +274,12 @@ export function PageList({ pages, dataSource, isLimited }: PageListProps) {
                         <div className="flex min-w-0 items-center gap-3">
                           <div className={cn('h-2.5 w-2.5 shrink-0 rounded-full', statusDots[page.status])} />
                           <span className="truncate font-medium text-lo-text">{page.url}</span>
+                          {page.trend !== undefined && (
+                            <span className={cn('ml-2 text-xs flex items-center', page.trend > 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                              {page.trend > 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                              {Math.abs(page.trend)}%
+                            </span>
+                          )}
                         </div>
                         <div
                           className={cn(
@@ -392,6 +405,38 @@ export function PageList({ pages, dataSource, isLimited }: PageListProps) {
                                 </div>
                               </div>
                             </div>
+                            
+                            {(page.devices || page.recordingUrl) && (
+                              <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                {page.devices && (
+                                  <div className="rounded-xl border border-lo-border bg-lo-panel p-4 flex flex-col justify-center">
+                                    <div className="mb-3 text-xs uppercase tracking-wider text-lo-muted">Device Breakdown</div>
+                                    <div className="flex items-center gap-4 text-sm font-medium">
+                                      <div className="flex items-center gap-1.5"><Monitor className="w-4 h-4 text-lo-muted" /> {page.devices.desktop}%</div>
+                                      <div className="flex items-center gap-1.5"><Smartphone className="w-4 h-4 text-lo-muted" /> {page.devices.mobile}%</div>
+                                      <div className="flex items-center gap-1.5"><Tablet className="w-4 h-4 text-lo-muted" /> {page.devices.tablet}%</div>
+                                    </div>
+                                    <div className="mt-3 flex h-1.5 w-full overflow-hidden rounded-full bg-lo-border">
+                                      <div className="bg-lo-accent" style={{ width: `${page.devices.desktop}%` }} />
+                                      <div className="bg-blue-400" style={{ width: `${page.devices.mobile}%` }} />
+                                      <div className="bg-purple-400" style={{ width: `${page.devices.tablet}%` }} />
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                <div className="rounded-xl border border-lo-border bg-lo-panel p-4 flex flex-col justify-center gap-3">
+                                  <div className="text-xs uppercase tracking-wider text-lo-muted">Deep Actions</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <a href={page.recordingUrl || '#'} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-lo-accent/10 px-3 py-2 text-sm font-medium text-lo-accent transition-colors hover:bg-lo-accent/20">
+                                      <PlayCircle className="w-4 h-4" /> Watch Sessions
+                                    </a>
+                                    <a href={page.heatmapUrl || '#'} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20">
+                                      <Map className="w-4 h-4" /> View Heatmap
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
                             {page.explanation && (
                               <div className="flex flex-col gap-3">

@@ -102,52 +102,48 @@ app.post('/api/explain', async (req, res) => {
 
   const prompt =
     mode === 'detailed'
-      ? `You help non-technical stakeholders read a web analytics dashboard (Lucky Orange style).
+      ? `You are a Senior E-commerce CRO Analyst specializing in Shopify performance and Lucky Orange session data. You help non-technical stakeholders understand where they are losing revenue.
 
-Write output in ${lang} with this exact shape:
-Summary: <3-5 concise sentences>
-Findings:
-- <finding 1 with metric>
-- <finding 2 with metric>
-- <finding 3 with metric>
-Risks:
-- <risk 1>
-- <risk 2 optional>
-Recommended Actions:
-- <action 1>
-- <action 2>
-- <action 3 optional>
+Write output in ${lang} using this exact structured framework:
+Summary: <3-5 concise sentences explaining the primary revenue leaks and overall store health>
+High-Impact Revenue Leaks:
+- <leak 1 based on high traffic/high friction pages or funnel dropoffs>
+- <leak 2 based on segment/category data>
+- <leak 3 based on specific UX friction like Shaky Mouse or Rage Clicks>
+Strategic Roadmap (Action Plan):
+- [Immediate] <What to look for in Lucky Orange Heatmaps/Recordings>
+- [Short-Term] <Structural or UX fix for a specific page/funnel step>
+- [Ongoing] <General optimization strategy>
 
 Rules:
-- Use plain language first, then specifics.
-- Do not invent numbers; only use facts from the inputs.
-- If the data is "limited" (no health scores), explain limitations explicitly.
+- Adopt a professional, consultative tone. Focus on "conversion blockers" and "revenue".
+- Do not invent numbers; only use facts from the Bullet Facts below.
+- Specifically mention Shopify concepts (Products, Checkout, Collections, Cart) if they appear in the data.
+- If data mentions "Shaky Mouse" or "Rage Clicks", explain why this indicates user frustration.
 
-Automatic summary (may be English):
+Automatic summary:
 ${summary ?? ''}
 
-Bullet facts (English, from the app):
+Bullet facts (Analyzed from the dashboard):
 ${bullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}
 `
-      : `You help non-technical stakeholders read a web analytics dashboard (Lucky Orange style).
+      : `You are a Senior E-commerce CRO Analyst summarizing Shopify performance and UX friction.
 
 Write output in ${lang} with this exact shape:
-Summary: <2 short sentences>
-- <bullet 1>
-- <bullet 2>
-- <bullet 3>
-- <bullet 4 optional>
-- <bullet 5 optional>
+Summary: <2 short sentences identifying the biggest UX friction point or funnel dropoff>
+- <Bullet 1: Top performing area or category>
+- <Bullet 2: Biggest friction hotspot (e.g. Rage clicks, High bounce)>
+- <Bullet 3: Next step (e.g. "Review Lucky Orange recordings for the Checkout page")>
 
 Rules:
-- Use plain language; avoid jargon unless you explain it in one short clause.
+- Focus on actionable insights related to UX friction, funnel dropoffs, or category performance.
 - Do not invent numbers; only use facts from the inputs.
-- If the data is "limited" (no health scores), say what is missing and what they can still learn.
+- Keep it punchy and focused on revenue optimization.
 
-Automatic summary (may be English):
+Automatic summary:
 ${summary ?? ''}
 
-Bullet facts (English, from the app):
+Bullet facts (Analyzed from the dashboard):
 ${bullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}
 `;
 
@@ -191,14 +187,15 @@ app.post('/api/chat', async (req, res) => {
   const localeNames: Record<string, string> = { en: 'English', es: 'Spanish', fr: 'French' };
   const lang = localeNames[locale ?? 'en'] ?? 'English';
 
-  const prompt = `Answer the user's question in ${lang} using ONLY the dashboard context below.
-If context is insufficient, say so clearly and suggest what data is needed.
-Keep response concise and practical (4-8 sentences or short bullets).
+  const prompt = `You are a Senior E-commerce CRO Analyst answering a question about a Shopify store's performance.
+Answer the user's question in ${lang} using ONLY the dashboard context below.
+If context is insufficient, say so clearly and suggest what Lucky Orange recording or heatmap they should review.
+Keep response concise, consultative, and practical (4-8 sentences or short bullets).
 
 Dashboard summary:
 ${summary ?? ''}
 
-Known facts:
+Known facts (Analyzed from the dashboard):
 ${bullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}
 
 User question:

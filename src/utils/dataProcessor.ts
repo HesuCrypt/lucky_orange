@@ -8,7 +8,22 @@ import {
   DataType,
   CsvRowIssue,
   ImportMeta,
+  ShopifyCategory,
+  CategoryData,
+  OrderAnalytics,
+  ProductSales,
 } from '../types';
+
+function getShopifyCategory(url: string): ShopifyCategory {
+  if (!url || url === '/' || url === '/home') return 'Home';
+  if (url.includes('/products/')) return 'Products';
+  if (url.includes('/collections/')) return 'Collections';
+  if (url.includes('/search')) return 'Search';
+  if (url.includes('/pages/')) return 'Pages';
+  if (url.includes('/account/') || url === '/account') return 'Account';
+  if (url.includes('/cart')) return 'Cart';
+  return 'Other';
+}
 
 // Helper to generate human-readable explanations and action items for poor performance
 function generateExplanation(page: RawPageData): { explanation: string; actionItem: string } {
@@ -88,6 +103,22 @@ export function calculateHealthScore(page: RawPageData, isLimited: boolean): { s
 export function processAnalyticsData(rawData: RawPageData[], isLimited: boolean): Omit<DashboardData, 'dataSource'> {
   const pages: PageMetrics[] = rawData.map((page, index) => {
     const { score, status, explanation, actionItem } = calculateHealthScore(page, isLimited);
+    
+    // Mock advanced data
+    const desktop = Math.floor(Math.random() * 60) + 20; // 20-80%
+    const mobile = Math.floor(Math.random() * (100 - desktop));
+    const tablet = 100 - desktop - mobile;
+    
+    // Random trend between -15 and +15
+    const trend = Number((Math.random() * 30 - 15).toFixed(1));
+
+    const friction = {
+      deadClicks: Math.floor(Math.random() * 50),
+      rageClicks: page.rageClicks,
+      shakyMouse: Math.floor(Math.random() * 100),
+      repeatedField: Math.floor(Math.random() * 20),
+    };
+    
     return {
       ...page,
       id: `page-${index}-${Date.now()}`,
@@ -95,6 +126,12 @@ export function processAnalyticsData(rawData: RawPageData[], isLimited: boolean)
       status,
       explanation,
       actionItem,
+      trend,
+      devices: { desktop, mobile, tablet },
+      recordingUrl: `https://app.luckyorange.com/v2/recordings?search=${encodeURIComponent(page.url)}`,
+      heatmapUrl: `https://app.luckyorange.com/v2/heatmaps?url=${encodeURIComponent(page.url)}`,
+      shopifyCategory: getShopifyCategory(page.url),
+      friction,
     };
   });
 
@@ -110,6 +147,59 @@ export function processAnalyticsData(rawData: RawPageData[], isLimited: boolean)
   const totalViews = pages.reduce((acc, p) => acc + p.views, 0);
   const criticalPagesCount = pages.filter(p => p.status === 'Red').length;
 
+  const categoryMap: Record<ShopifyCategory, { views: number; totalBounce: number; count: number }> = {
+    Home: { views: 0, totalBounce: 0, count: 0 },
+    Collections: { views: 0, totalBounce: 0, count: 0 },
+    Products: { views: 0, totalBounce: 0, count: 0 },
+    Search: { views: 0, totalBounce: 0, count: 0 },
+    Pages: { views: 0, totalBounce: 0, count: 0 },
+    Account: { views: 0, totalBounce: 0, count: 0 },
+    Cart: { views: 0, totalBounce: 0, count: 0 },
+    Other: { views: 0, totalBounce: 0, count: 0 },
+  };
+
+  pages.forEach(p => {
+    const cat = p.shopifyCategory || 'Other';
+    categoryMap[cat].views += p.views;
+    categoryMap[cat].totalBounce += p.bounceRate;
+    categoryMap[cat].count += 1;
+  });
+
+  const categories: CategoryData[] = (Object.keys(categoryMap) as ShopifyCategory[])
+    .map(name => ({
+      name,
+      views: categoryMap[name].views,
+      avgBounceRate: categoryMap[name].count > 0 ? Math.round(categoryMap[name].totalBounce / categoryMap[name].count) : 0,
+      pageCount: categoryMap[name].count,
+    }))
+    .filter(c => c.pageCount > 0)
+    .sort((a, b) => b.views - a.views);
+
+  const totalDeadClicks = pages.reduce((acc, p) => acc + (p.friction?.deadClicks || 0), 0);
+  const totalRageClicks = pages.reduce((acc, p) => acc + (p.friction?.rageClicks || 0), 0);
+  const sessionDurationAvg = Math.round(pages.reduce((acc, p) => acc + p.avgTimeOnPage, 0) / (pages.length || 1));
+
+  const executiveAudit = {
+    navigationClarity: isLimited ? 0 : Math.floor(Math.random() * 40) + 50, // 50-90
+    inputEfficiency: Math.floor(Math.random() * 60) + 15, // 15-75 seconds
+    sessionDurationAvg,
+    frictionPulse: totalDeadClicks + totalRageClicks,
+    funnelExisting: [
+      { step: 'Landing Page', users: totalViews, dropoff: 0 },
+      { step: 'Product Page', users: Math.round(totalViews * 0.7), dropoff: 30 },
+      { step: 'Cart', users: Math.round(totalViews * 0.3), dropoff: 57 },
+      { step: 'Checkout', users: Math.round(totalViews * 0.15), dropoff: 50 },
+      { step: 'Purchase', users: Math.round(totalViews * 0.05), dropoff: 66 },
+    ],
+    funnelNew: [
+      { step: 'Landing Page', users: totalViews, dropoff: 0 },
+      { step: 'Signup Page', users: Math.round(totalViews * 0.4), dropoff: 60 },
+      { step: 'Input Details', users: Math.round(totalViews * 0.2), dropoff: 50 },
+      { step: 'Product Page', users: Math.round(totalViews * 0.1), dropoff: 50 },
+      { step: 'Purchase', users: Math.round(totalViews * 0.02), dropoff: 80 },
+    ]
+  };
+
   return {
     overallHealth,
     totalViews,
@@ -117,6 +207,11 @@ export function processAnalyticsData(rawData: RawPageData[], isLimited: boolean)
     pages,
     topCriticalPages,
     isLimitedData: isLimited,
+    activeUsers: Math.floor(Math.random() * 500) + 50, // Mock real-time pulse
+    periodComparison: 'vs last 7 days',
+    viewsTrend: Number((Math.random() * 20 - 5).toFixed(1)), // -5% to +15%
+    categories,
+    executiveAudit,
   };
 }
 
@@ -163,12 +258,13 @@ function findHeaderValue(row: any, aliases: string[]): any {
 const URL_ALIASES = [
   'URL Path', 'URLPath', 'Page URL', 'Link', 'Path', 'URL', 'Request Path', 'Address',
   'Page', 'Form', 'Element', 'Name', 'Selector', 'Component', 'Field',
+  'Lineitem name', 'Product Title', 'Product',
 ];
 
 // All known aliases for the count/views column
 const COUNT_ALIASES = [
   'Pageviews', 'Views', 'Visits', 'Sessions', 'Page Views', 'Hits', 'Count',
-  'Submissions', 'Clicks', 'Interactions', 'Events', 'Total',
+  'Submissions', 'Clicks', 'Interactions', 'Events', 'Total', 'Net Sales', 'Lineitem quantity',
 ];
 
 /**
@@ -205,8 +301,11 @@ function detectDataType(identifierCol: string, countCol: string): { dataType: Da
   const id = identifierCol.toLowerCase().replace(/[^a-z0-9]/g, '');
   const cnt = countCol.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+  if (id.includes('lineitem') || id.includes('product') || cnt.includes('total') || cnt.includes('sales')) {
+    return { dataType: 'shopify-orders' as DataType, dataTypeLabel: 'Orders & Sales', identifierLabel: 'Product', countLabel: 'Sales' };
+  }
   if (id.includes('form') || id.includes('selector') || id.includes('element') || cnt.includes('submission')) {
-    return { dataType: 'form-analytics', dataTypeLabel: 'Form Analytics', identifierLabel: 'Form', countLabel: 'Submissions' };
+    return { dataType: 'form-analytics' as DataType, dataTypeLabel: 'Form Analytics', identifierLabel: 'Form', countLabel: 'Submissions' };
   }
   if (id.includes('url') || id.includes('path') || id.includes('page')) {
     if (cnt.includes('pageview') || cnt.includes('view') || cnt.includes('hit')) {
@@ -327,14 +426,20 @@ export function parseCSV(csvString: string, fileName: string = 'Uploaded CSV'): 
 
           const firstRow = results.data[0] as any;
           const headers = Object.keys(firstRow);
-          const { identifierCol, countCol } = detectColumns(headers, firstRow);
+          let { identifierCol, countCol } = detectColumns(headers, firstRow);
 
           console.log('[CSV Parser] Detected headers:', headers);
           console.log('[CSV Parser] Identifier column:', identifierCol, '| Count column:', countCol);
 
           if (!identifierCol && !countCol) {
-            reject(new Error(`Could not detect data columns. Found headers: ${headers.join(', ')}`));
-            return;
+            // Check if it's a Shopify Orders export without standard headers
+            if (headers.includes('Lineitem name') && headers.includes('Lineitem price')) {
+              identifierCol = 'Lineitem name';
+              countCol = 'Lineitem quantity';
+            } else {
+              reject(new Error(`Could not detect data columns. Found headers: ${headers.join(', ')}`));
+              return;
+            }
           }
 
           const hasBounce = findHeaderValue(firstRow, ['Bounce Rate', 'Bounce %', 'Bounces', 'BounceRate']) !== undefined;
@@ -401,6 +506,7 @@ export function parseCSV(csvString: string, fileName: string = 'Uploaded CSV'): 
                 rageClicks: rr.value,
                 scrollDepth: sr.value,
                 avgTimeOnPage: tr.value,
+                _rawRow: row, // Keep raw row for order processing
               };
             });
 
@@ -416,11 +522,130 @@ export function parseCSV(csvString: string, fileName: string = 'Uploaded CSV'): 
             return;
           }
 
-          const processed = processAnalyticsData(rawData, isLimited);
-          const { dataType, dataTypeLabel, identifierLabel, countLabel } = detectDataType(
-            identifierCol || 'Item',
-            countCol || 'Count'
-          );
+          const { dataType, dataTypeLabel, identifierLabel, countLabel } = preDetected;
+
+          // Process Orders if it's a sales export
+          let ordersData: any = undefined;
+          if (dataType === 'shopify-orders') {
+            const productMap = new Map<string, any>();
+            let orderVolume = new Set();
+            let totalRevenue = 0;
+            let discountImpact = 0;
+            const geoMap: Record<string, number> = {};
+            const customerMap: Record<string, number> = {};
+            const financialStats = { paid: 0, refunded: 0, pending: 0, cancelled: 0 };
+            
+            let lastOrderName = '';
+            let lastStatus = '';
+
+            rawData.forEach(r => {
+              const row = (r as any)._rawRow;
+              const currentOrderName = String(row['Name'] || row['Id'] || '').trim();
+              
+              // Financial Status Pulse - Handle 'fill-down' for multi-line orders
+              let status = (row['Financial Status'] || '').toLowerCase().trim();
+              
+              if (currentOrderName && currentOrderName === lastOrderName && !status) {
+                status = lastStatus; // Use the status from the first line of this order
+              } else if (status) {
+                lastStatus = status;
+                lastOrderName = currentOrderName;
+                
+                // Only count the order status once per unique order ID for the breakdown stats
+                if (status === 'paid') financialStats.paid++;
+                else if (status.includes('refund')) financialStats.refunded++;
+                else if (status === 'pending') financialStats.pending++;
+                else if (status === 'voided' || status === 'cancelled') financialStats.cancelled++;
+              }
+
+              // Include both paid and pending (COD) for revenue calculation
+              if (status !== 'paid' && status !== 'pending' && status !== 'partially_paid') return; 
+
+              const pName = row['Lineitem name'] || row['Product Title'] || r.url;
+              const pSku = row['Lineitem sku'] || row['SKU'] || 'N/A';
+              const pQty = parseNumeric(row['Lineitem quantity'] || row['Quantity'] || row['Net Quantity'] || r.views);
+              const pPrice = parseNumeric(row['Lineitem price'] || row['Price'] || row['Gross Sales'] || 0);
+              const pDiscount = parseNumeric(row['Lineitem discount'] || 0);
+              
+              const pRevenue = (pQty * pPrice) - pDiscount;
+
+              if (currentOrderName) {
+                orderVolume.add(currentOrderName);
+              }
+              
+              // Customer Retention
+              const customerEmail = row['Email'] || row['Customer Email'] || row['Billing Name'];
+              if (customerEmail) {
+                customerMap[customerEmail] = (customerMap[customerEmail] || 0) + 1;
+              }
+
+              totalRevenue += pRevenue;
+              discountImpact += pDiscount;
+
+              const country = row['Billing Country'] || row['Country'] || 'Unknown';
+              if (country !== 'Unknown') {
+                geoMap[country] = (geoMap[country] || 0) + 1;
+              }
+
+              if (pName && pName !== 'Unknown') {
+                const existing = productMap.get(pName) || { id: pName, name: pName, sku: pSku, quantity: 0, revenue: 0 };
+                existing.quantity += pQty;
+                existing.revenue += pRevenue;
+                productMap.set(pName, existing);
+              }
+            });
+
+            const uniqueCustomers = Object.keys(customerMap).length;
+            const repeatCustomers = Object.values(customerMap).filter(v => v > 1).length;
+
+            ordersData = {
+              topProducts: Array.from(productMap.values()).sort((a, b) => b.revenue - a.revenue),
+              orderVolume: orderVolume.size || rawData.length,
+              totalRevenue,
+              averageOrderValue: orderVolume.size ? totalRevenue / orderVolume.size : 0,
+              geoDistribution: Object.entries(geoMap).map(([country, count]) => ({ country, count })).sort((a, b) => b.count - a.count),
+              discountImpact,
+              retentionMetrics: {
+                totalUniqueCustomers: uniqueCustomers,
+                loyalCustomerCount: repeatCustomers,
+                repeatCustomerRate: uniqueCustomers > 0 ? (repeatCustomers / uniqueCustomers) * 100 : 0
+              },
+              financialStatus: financialStats
+            };
+          }
+
+          const processed = processAnalyticsData(rawData.map(r => {
+            const { _rawRow, ...rest } = r as any;
+            return rest;
+          }), isLimited);
+
+          // Cross-Functional Linking (Missing Link)
+          let linkedInsights: any[] = [];
+          if (ordersData && processed.pages.length > 0) {
+            ordersData.topProducts.slice(0, 50).forEach(product => {
+              const matchedPage = processed.pages.find(p => 
+                p.url.toLowerCase().includes(product.name.toLowerCase().replace(/\s+/g, '-')) ||
+                product.name.toLowerCase().includes(p.url.split('/').pop()?.replace(/-/g, ' ') || '___')
+              );
+              
+              if (matchedPage) {
+                linkedInsights.push({
+                  productName: product.name,
+                  url: matchedPage.url,
+                  revenue: product.revenue,
+                  views: matchedPage.views,
+                  bounceRate: matchedPage.bounceRate,
+                  frictionScore: (matchedPage.friction?.deadClicks || 0) + (matchedPage.friction?.rageClicks || 0),
+                  conversionRate: matchedPage.views > 0 ? (product.quantity / matchedPage.views) * 100 : 0
+                });
+              }
+            });
+          }
+          
+          if (dataType === 'shopify-orders') {
+            processed.totalViews = ordersData.orderVolume;
+            processed.overallHealth = 100;
+          }
 
           const dataSource: DataSource = {
             fileName,
@@ -437,7 +662,7 @@ export function parseCSV(csvString: string, fileName: string = 'Uploaded CSV'): 
               ? { warnings: importWarnings, rowIssues: rowIssues.slice(0, 120) }
               : undefined;
 
-          resolve({ ...processed, dataSource, importMeta });
+          resolve({ ...processed, dataSource, importMeta, ordersData, linkedInsights });
         } catch (err) {
           reject(err);
         }
@@ -491,5 +716,112 @@ export function getMockData(): DashboardData {
       summary: generateSummary(processed.pages, 'Page', 'Views', false),
       uploadedAt: new Date(),
     },
+  };
+}
+
+export function mergeDashboardData(datasets: DashboardData[]): DashboardData {
+  if (datasets.length === 0) throw new Error("No data to merge");
+  if (datasets.length === 1) return datasets[0];
+
+  // Separate behavioral pages from order-based "pages"
+  const behavioralDatasets = datasets.filter(d => d.dataSource?.dataType !== 'shopify-orders');
+  const orderDatasets = datasets.filter(d => d.ordersData !== undefined);
+
+  // If we only have orders, the "pages" list should be empty to avoid confusion in heatmap tabs
+  const allPages = behavioralDatasets.flatMap(d => d.pages).sort((a, b) => b.views - a.views);
+  
+  const totalViews = allPages.length > 0 
+    ? allPages.reduce((acc, p) => acc + p.views, 0)
+    : orderDatasets.reduce((acc, d) => acc + (d.ordersData?.orderVolume || 0), 0);
+
+  const criticalPagesCount = allPages.filter(p => p.status === 'Red').length;
+  const topCriticalPages = allPages.filter(p => p.status === 'Red').sort((a, b) => a.healthScore - b.healthScore).slice(0, 10);
+  const isLimitedData = behavioralDatasets.length > 0 ? behavioralDatasets.some(d => d.isLimitedData) : true;
+  const overallHealth = allPages.length > 0 
+    ? Math.round(allPages.reduce((acc, p) => acc + p.healthScore, 0) / (allPages.length || 1))
+    : -1;
+
+  // Merge ordersData if present
+  let mergedOrders: OrderAnalytics | undefined = undefined;
+  if (orderDatasets.length > 0) {
+    const productMap = new Map<string, ProductSales>();
+    let orderVolume = 0;
+    let totalRevenue = 0;
+    let discountImpact = 0;
+    const geoMap: Record<string, number> = {};
+
+    orderDatasets.forEach(d => {
+      const o = d.ordersData!;
+      orderVolume += o.orderVolume;
+      totalRevenue += o.totalRevenue;
+      discountImpact += o.discountImpact;
+      
+      o.topProducts.forEach(p => {
+        const existing = productMap.get(p.name) || { ...p, quantity: 0, revenue: 0 };
+        existing.quantity += p.quantity;
+        existing.revenue += p.revenue;
+        productMap.set(p.name, existing);
+      });
+
+      o.geoDistribution.forEach(g => {
+        geoMap[g.country] = (geoMap[g.country] || 0) + g.count;
+      });
+    });
+
+    mergedOrders = {
+      topProducts: Array.from(productMap.values()).sort((a, b) => b.revenue - a.revenue),
+      orderVolume,
+      totalRevenue,
+      averageOrderValue: orderVolume > 0 ? totalRevenue / orderVolume : 0,
+      geoDistribution: Object.entries(geoMap).map(([country, count]) => ({ country, count })).sort((a, b) => b.count - a.count),
+      discountImpact,
+    };
+  }
+
+  // Merge categories (only from behavioral data)
+  const categoryMap: Record<string, { views: number; totalBounce: number; count: number }> = {};
+  allPages.forEach(p => {
+    const cat = p.shopifyCategory || 'Other';
+    if (!categoryMap[cat]) categoryMap[cat] = { views: 0, totalBounce: 0, count: 0 };
+    categoryMap[cat].views += p.views;
+    categoryMap[cat].totalBounce += p.bounceRate;
+    categoryMap[cat].count += 1;
+  });
+
+  const categories = Object.keys(categoryMap).map(name => ({
+    name: name as any,
+    views: categoryMap[name].views,
+    avgBounceRate: categoryMap[name].count > 0 ? Math.round(categoryMap[name].totalBounce / categoryMap[name].count) : 0,
+    pageCount: categoryMap[name].count,
+  })).sort((a, b) => b.views - a.views);
+
+  const mergedDataSource = {
+    ...datasets[0].dataSource!,
+    fileName: datasets.map(d => d.dataSource?.fileName).filter(Boolean).join(', '),
+    summary: datasets.length > 1 
+      ? `Merged data from ${datasets.length} files. ${allPages.length} pages and ${mergedOrders?.orderVolume || 0} orders found.`
+      : datasets[0].dataSource?.summary || '',
+  };
+
+  const importMetaWarnings = datasets.flatMap(d => d.importMeta?.warnings || []);
+  const importMetaRowIssues = datasets.flatMap(d => d.importMeta?.rowIssues || []);
+  const importMeta = importMetaWarnings.length > 0 || importMetaRowIssues.length > 0 
+    ? { warnings: importMetaWarnings, rowIssues: importMetaRowIssues.slice(0, 120) } 
+    : undefined;
+
+  return {
+    ...datasets[0],
+    overallHealth,
+    totalViews,
+    criticalPagesCount,
+    pages: allPages,
+    topCriticalPages,
+    isLimitedData,
+    dataSource: mergedDataSource,
+    importMeta,
+    categories,
+    executiveAudit: behavioralDatasets.length > 0 ? behavioralDatasets[0].executiveAudit : undefined,
+    ordersData: mergedOrders,
+    linkedInsights: datasets.flatMap(d => d.linkedInsights || []).sort((a, b) => b.revenue - a.revenue),
   };
 }

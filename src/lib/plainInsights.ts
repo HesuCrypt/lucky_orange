@@ -39,6 +39,64 @@ export function buildPlainInsights(data: DashboardData): string[] {
     `Rough mix: about ${greenPct}% healthy, ${yellowPct}% warning, ${redPct}% critical (by row count, not weighted by traffic).`,
   );
 
+  // Inject Shopify Category Intelligence
+  if (data.categories && data.categories.length > 0) {
+    const topCat = data.categories[0];
+    bullets.push(`The top Shopify category by traffic is '${topCat.name}' with ${topCat.views} views and an average bounce rate of ${topCat.avgBounceRate}%.`);
+    const worstCat = [...data.categories].sort((a, b) => b.avgBounceRate - a.avgBounceRate)[0];
+    if (worstCat && worstCat.name !== topCat.name) {
+      bullets.push(`The Shopify category with the highest friction is '${worstCat.name}' with a ${worstCat.avgBounceRate}% bounce rate across ${worstCat.pageCount} pages.`);
+    }
+  }
+
+  // Inject Friction Hotspots
+  const pagesWithFriction = data.pages
+    .filter(p => p.friction)
+    .map(p => ({
+      url: p.url,
+      totalFriction: (p.friction?.rageClicks || 0) + (p.friction?.deadClicks || 0) + (p.friction?.shakyMouse || 0)
+    }))
+    .sort((a, b) => b.totalFriction - a.totalFriction)
+    .slice(0, 3);
+  
+  if (pagesWithFriction.length > 0 && pagesWithFriction[0].totalFriction > 0) {
+    bullets.push(`Top 3 pages with the highest UX friction (Rage Clicks, Dead Clicks, Shaky Mouse): ${pagesWithFriction.map(p => p.url).join(', ')}.`);
+  }
+
+  // Inject Funnel Integrity
+  if (data.executiveAudit) {
+    bullets.push(`Executive Audit - Navigation Clarity Score: ${data.executiveAudit.navigationClarity}/100.`);
+    bullets.push(`Executive Audit - Form Input Efficiency: ${data.executiveAudit.inputEfficiency} seconds average.`);
+    const existingFunnel = data.executiveAudit.funnelExisting;
+    const existingPurchase = existingFunnel.find(f => f.step.toLowerCase() === 'purchase');
+    if (existingPurchase) {
+       bullets.push(`Existing Customer Funnel: Dropoff at the final Purchase step is ${existingPurchase.dropoff}%.`);
+    }
+    const newFunnel = data.executiveAudit.funnelNew;
+    const newSignup = newFunnel.find(f => f.step.toLowerCase().includes('signup'));
+    if (newSignup) {
+       bullets.push(`New Customer Funnel: Dropoff at the Signup step is ${newSignup.dropoff}%.`);
+    }
+  }
+
+  // Inject Sales Intelligence
+  if (data.ordersData) {
+    const o = data.ordersData;
+    bullets.push(`Sales Intelligence: Total Revenue is PHP ${o.totalRevenue.toLocaleString()} with an Average Order Value of PHP ${o.averageOrderValue.toLocaleString()}.`);
+    if (o.retentionMetrics) {
+      bullets.push(`Customer Retention: Repeat Customer Rate is ${o.retentionMetrics.repeatCustomerRate.toFixed(1)}%. We have ${o.retentionMetrics.loyalCustomerCount} loyal shoppers.`);
+    }
+    if (o.financialStatus) {
+      bullets.push(`Order Pulse: ${o.financialStatus.paid} orders are Paid, while ${o.financialStatus.refunded} have been Refunded.`);
+    }
+  }
+
+  // Inject Linked Revenue Leaks
+  if (data.linkedInsights && data.linkedInsights.length > 0) {
+    const topLeak = data.linkedInsights[0];
+    bullets.push(`Revenue-at-Risk: The product '${topLeak.productName}' has PHP ${topLeak.revenue.toLocaleString()} in revenue but shows a ${topLeak.bounceRate}% bounce rate and ${topLeak.frictionScore} friction events.`);
+  }
+
   return bullets;
 }
 
