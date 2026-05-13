@@ -157,9 +157,9 @@ function KPI({ label, value, color }: { label: string; value: string; color?: st
 
 function StatCard({ title, value, unit, icon, color }: { title: string; value: string; unit: string; icon: React.ReactNode; color: string }) {
   return (
-    <div className="rounded-2xl bg-lo-panel border border-lo-border p-4 flex items-center gap-4">
+    <div className="rounded-2xl bg-lo-panel border border-lo-border p-5 flex items-center gap-5 hover:bg-white/[0.02] transition-colors group">
       <div className={cn(
-        "h-10 w-10 rounded-xl flex items-center justify-center",
+        "h-12 w-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
         color === 'emerald' ? "bg-emerald-500/10 text-emerald-400" :
         color === 'rose' ? "bg-rose-500/10 text-rose-400" :
         color === 'amber' ? "bg-amber-500/10 text-amber-400" :
@@ -168,10 +168,10 @@ function StatCard({ title, value, unit, icon, color }: { title: string; value: s
         {icon}
       </div>
       <div>
-        <p className="text-[10px] uppercase font-bold text-lo-muted tracking-tight">{title}</p>
-        <div className="flex items-baseline gap-1">
-          <p className="text-lg font-bold text-lo-text">{value}</p>
-          <p className="text-[10px] text-lo-muted font-bold">{unit}</p>
+        <p className="text-[10px] uppercase font-black text-lo-muted tracking-[0.1em] mb-1 opacity-80">{title}</p>
+        <div className="flex items-baseline gap-1.5">
+          <p className="text-xl font-black text-lo-text tracking-tight">{value}</p>
+          <p className="text-[10px] text-lo-muted font-black uppercase opacity-60 tracking-widest">{unit}</p>
         </div>
       </div>
     </div>

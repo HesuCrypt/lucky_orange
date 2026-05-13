@@ -128,13 +128,13 @@ export function Dashboard() {
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-lo-border bg-lo-bg-soft/50 backdrop-blur-xl print:hidden">
         <div className="flex h-full flex-col p-6">
-          <div className="mb-10 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-lo-accent to-blue-600 shadow-lg shadow-lo-accent/20">
-              <ShieldCheck className="h-6 w-6 text-white" />
+          <div className="mb-12 flex items-center gap-4 group cursor-default">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-gradient-to-br from-lo-accent to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.2)] group-hover:scale-105 transition-transform duration-500">
+              <ShieldCheck className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-black tracking-tight text-white uppercase">LUCKY<span className="text-lo-accent">BI</span></h1>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-lo-muted">Executive Suite</p>
+              <h1 className="text-xl font-black tracking-tighter text-white leading-none">LUCKY<span className="text-lo-accent">BI</span></h1>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-lo-muted mt-1 opacity-70">Executive Suite</p>
             </div>
           </div>
 
@@ -165,50 +165,54 @@ export function Dashboard() {
             />
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-lo-border">
+          <div className="mt-auto pt-8 border-t border-white/5">
             <button 
               onClick={handleReset}
-              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-rose-400 hover:bg-rose-500/10 transition-colors"
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] text-rose-400/60 hover:text-rose-400 hover:bg-rose-500/5 transition-all"
             >
-              <RotateCcw className="h-5 w-5" />
-              Clear Dataset
+              <RotateCcw className="h-4 w-4" />
+              Reset Feed
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 pl-64 transition-all duration-300">
-        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-lo-border bg-lo-bg/80 px-8 backdrop-blur-md print:hidden">
-          <div className="flex items-center gap-4">
+      <main className="flex-1 ml-64 min-h-screen transition-all duration-300">
+        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-white/5 bg-lo-bg/40 px-10 backdrop-blur-2xl print:hidden">
+          <div className="flex items-center gap-6">
             {data?.dataSource ? (
-              <div className="flex items-center gap-2 rounded-full border border-lo-border bg-lo-elevated px-4 py-1.5 text-xs font-medium text-lo-muted">
-                <FileSpreadsheet className="h-3.5 w-3.5 text-lo-accent" />
-                {data.dataSource.fileName}
-                <span className="mx-2 h-3 w-[1px] bg-lo-border" />
-                {data.dataSource.dataTypeLabel}
+              <div className="flex items-center gap-3 rounded-2xl border border-lo-accent/20 bg-lo-accent/5 px-5 py-2 text-xs font-black uppercase tracking-widest text-lo-accent animate-in fade-in zoom-in duration-500">
+                <FileSpreadsheet className="h-4 w-4" />
+                <span className="opacity-80">Source:</span>
+                <span className="text-white">{data.dataSource.fileName}</span>
+                <div className="h-4 w-[1px] bg-lo-accent/20 mx-1" />
+                <span className="bg-lo-accent/20 px-2 py-0.5 rounded text-[10px]">{data.dataSource.dataTypeLabel}</span>
               </div>
             ) : (
-              <div className="text-sm font-bold text-lo-muted uppercase tracking-widest">Awaiting Data</div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-lo-muted/40 animate-pulse" />
+                <div className="text-[10px] font-black text-lo-muted uppercase tracking-[0.2em]">Awaiting Intelligence Feed</div>
+              </div>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {data && (
               <button 
                 onClick={() => window.print()}
-                className="p-2.5 rounded-xl border border-lo-border bg-lo-elevated text-lo-muted hover:text-white transition-colors"
-                title="Print Report"
+                className="p-3 rounded-xl border border-white/5 bg-white/[0.03] text-lo-muted hover:text-white hover:bg-white/5 transition-all"
+                title="Generate Print Report"
               >
                 <Printer className="h-5 w-5" />
               </button>
             )}
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 rounded-xl bg-lo-accent px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-lo-accent/20 hover:scale-[1.02] active:scale-95 transition-all"
+              className="group flex items-center gap-3 rounded-2xl bg-lo-accent px-6 py-3 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-lo-accent/20 hover:shadow-lo-accent/40 hover:-translate-y-0.5 transition-all active:scale-95"
             >
-              <Upload className="h-4 w-4" />
-              Upload CSV
+              <Upload className="h-4 w-4 group-hover:bounce" />
+              Upload Feed
             </button>
             <input
               type="file"
@@ -221,7 +225,7 @@ export function Dashboard() {
           </div>
         </header>
 
-        <div className="p-8 pb-24 mx-auto max-w-7xl">
+        <div className="p-10 pb-24 mx-auto max-w-screen-2xl">
           {error && (
             <div className="mb-8 flex items-center gap-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6 text-rose-400 animate-in slide-in-from-top-4">
               <AlertOctagon className="h-6 w-6 shrink-0" />
@@ -334,19 +338,22 @@ function SidebarItem({ active, onClick, icon, label }: { active: boolean; onClic
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all group",
+        "relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all group overflow-hidden",
         active 
-          ? "bg-lo-accent text-white shadow-lg shadow-lo-accent/20" 
-          : "text-lo-muted hover:bg-lo-elevated hover:text-lo-text"
+          ? "text-white bg-lo-accent/10 border border-lo-accent/20" 
+          : "text-lo-muted hover:bg-white/5 hover:text-white"
       )}
     >
+      {active && (
+        <div className="absolute left-0 top-0 h-full w-1 bg-lo-accent shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
+      )}
       <span className={cn(
-        "transition-transform group-hover:scale-110",
-        active ? "text-white" : "text-lo-accent"
+        "transition-transform group-hover:scale-110 duration-300",
+        active ? "text-lo-accent" : "text-lo-muted group-hover:text-lo-accent"
       )}>
         {icon}
       </span>
-      {label}
+      <span className="tracking-tight">{label}</span>
     </button>
   );
 }

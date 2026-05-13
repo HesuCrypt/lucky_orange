@@ -107,142 +107,147 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
   };
 
   return (
-    <section
-      className="mb-8 rounded-2xl border border-lo-border bg-lo-panel p-5 md:p-6 print:hidden"
-      aria-labelledby="insights-heading"
-    >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-lo-accent-muted p-2.5 text-lo-accent">
-            <BookOpen className="h-5 w-5" aria-hidden />
-          </div>
-          <div>
-            <h2 id="insights-heading" className="text-base font-semibold text-lo-text">
-              {t('insightsTitle')}
-            </h2>
-            <p className="mt-1 text-sm text-lo-muted">{t('insightsHint')}</p>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="glass-card rounded-[2.5rem] overflow-hidden border-white/5">
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-lo-accent/10 via-transparent to-transparent p-10 border-b border-lo-border">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="flex items-center gap-5">
+              <div className="h-14 w-14 rounded-2xl bg-lo-accent/20 flex items-center justify-center text-lo-accent shadow-lg shadow-lo-accent/10">
+                <BookOpen className="h-7 w-7" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-white tracking-tight uppercase">{t('insightTitle')}</h3>
+                <p className="text-sm text-lo-muted font-bold tracking-wide mt-1">{t('insightSubtitle')}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => runAi('quick')}
+                disabled={aiLoading || !explainOk}
+                className="group flex items-center gap-2.5 rounded-xl bg-lo-accent px-6 py-3 text-xs font-black uppercase tracking-widest text-white hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 group-hover:animate-pulse" />}
+                {t('aiExplain')}
+              </button>
+              <button
+                onClick={() => runAi('detailed')}
+                disabled={aiLoading || !explainOk}
+                className="rounded-xl border border-lo-border bg-lo-elevated px-6 py-3 text-xs font-black uppercase tracking-widest text-lo-muted hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
+              >
+                {t('detailedReport')}
+              </button>
+            </div>
           </div>
         </div>
-        {explainOk ? (
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => runAi('quick')}
-              disabled={aiLoading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-lo-border bg-lo-elevated px-3 py-2 text-sm font-medium text-lo-text hover:bg-lo-elevated-hover disabled:opacity-60"
-            >
-              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4 text-lo-accent" aria-hidden />}
-              {aiLoading ? t('aiGenerating') : t('aiExplain')}
-            </button>
-            <button
-              type="button"
-              onClick={() => runAi('detailed')}
-              disabled={aiLoading}
-              className="inline-flex items-center justify-center rounded-xl border border-lo-border bg-lo-elevated px-3 py-2 text-sm font-medium text-lo-text hover:bg-lo-elevated-hover disabled:opacity-60"
-            >
-              Detailed report
-            </button>
-          </div>
-        ) : (
-          <div className="text-right">
-            <p className="max-w-xs text-xs text-lo-muted">
-              AI explanation unavailable (start <code className="rounded bg-lo-elevated px-1">npm run dev:api</code> with{' '}
-              <code className="rounded bg-lo-elevated px-1">GROQ_API_KEY</code> or{' '}
-              <code className="rounded bg-lo-elevated px-1">GEMINI_API_KEY</code>).
-            </p>
-            <p className="mt-1 text-[10px] text-lo-muted/40 uppercase tracking-widest">
-              Server Status: {aiErr || 'Checking...'}
+
+        {/* Content Section */}
+        <div className="p-10 space-y-12">
+          {/* Executive Summary Card */}
+          <div className="rounded-[2rem] bg-white/5 border border-white/5 p-8 relative overflow-hidden group">
+            <div className="absolute left-0 top-0 h-full w-1.5 bg-lo-accent/50" />
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-lo-accent mb-4 opacity-80">Executive Summary</h4>
+            <p className="text-xl font-bold text-lo-text leading-relaxed tracking-tight">
+              "{reviewSummary}"
             </p>
           </div>
-        )}
-      </div>
 
-      <div className="mt-5 rounded-xl border border-lo-border bg-lo-elevated p-4" translate="yes">
-        <h3 className="text-sm font-semibold text-lo-text">{t('reviewSummaryTitle')}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-lo-muted">{reviewSummary}</p>
-      </div>
-
-      {aiText ? (
-        <div className="mt-4 rounded-xl border border-lo-border bg-lo-elevated p-4" translate="yes">
-          <h3 className="text-sm font-semibold text-lo-text">{t('aiReviewTitle')}</h3>
-          {aiSummary && <p className="mt-2 text-sm leading-relaxed text-lo-muted">{aiSummary}</p>}
-          {aiBullets.length > 0 && (
-            <>
-              <h4 className="mt-3 text-xs font-semibold uppercase tracking-wide text-lo-muted">{t('keyTakeaways')}</h4>
-              <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-relaxed text-lo-text/90">
-                {aiBullets.map((line, i) => (
-                  <li key={i}>{line}</li>
+          {/* Observations Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div className="space-y-8">
+              <div className="flex items-center gap-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-lo-muted px-1 whitespace-nowrap">Observations</h4>
+                <div className="h-[1px] w-full bg-lo-border" />
+              </div>
+              <ul className="space-y-5">
+                {(aiText ? aiBullets : bullets).map((b, i) => (
+                  <li key={i} className="flex items-start gap-4 group">
+                    <div className="mt-2 h-2 w-2 rounded-full bg-lo-accent group-hover:scale-125 transition-transform shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    <span className="text-sm font-bold text-lo-muted leading-relaxed group-hover:text-lo-text transition-colors duration-300">
+                      {b}
+                    </span>
+                  </li>
                 ))}
               </ul>
-            </>
-          )}
-        </div>
-      ) : (
-        <ul className="mt-5 list-disc space-y-2 pl-5 text-sm leading-relaxed text-lo-text/90" translate="yes">
-          {bullets.map((line, i) => (
-            <li key={i}>{line}</li>
-          ))}
-        </ul>
-      )}
-
-      {aiErr && (
-        <p className="mt-3 text-sm text-rose-300" translate="yes">
-          {aiErr}
-        </p>
-      )}
-      {explainOk && !aiErr && <p className="mt-3 text-xs text-lo-muted">{t('aiExplainNote')}</p>}
-
-      {explainOk && (
-        <div className="mt-5 rounded-xl border border-lo-border bg-lo-elevated p-4" translate="yes">
-          <h3 className="text-sm font-semibold text-lo-text">Ask AI a question</h3>
-          <p className="mt-1 text-xs text-lo-muted">
-            Example: Which top 3 pages should I fix first and why?
-          </p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <input
-              type="text"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask about this dashboard data..."
-              className="w-full rounded-xl border border-lo-border bg-lo-panel px-3 py-2 text-sm text-lo-text placeholder:text-lo-muted focus:outline-none focus:ring-2 focus:ring-lo-accent/40"
-            />
-            <button
-              type="button"
-              onClick={runChat}
-              disabled={chatLoading || !question.trim()}
-              className="rounded-xl border border-lo-border bg-lo-panel px-4 py-2 text-sm font-medium text-lo-text hover:bg-lo-elevated-hover disabled:opacity-60"
-            >
-              {chatLoading ? 'Asking…' : 'Ask'}
-            </button>
-          </div>
-          {chatAnswer && (
-            <div className="mt-3 rounded-lg border border-lo-border bg-lo-panel p-3 text-sm leading-relaxed text-lo-muted whitespace-pre-wrap">
-              {chatAnswer}
             </div>
-          )}
-        </div>
-      )}
 
-      <div className="mt-6 border-t border-lo-border pt-5">
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-lo-text">
-          <Languages className="h-4 w-4 text-lo-muted" aria-hidden />
-          {t('glossaryTitle')}
+            <div className="space-y-8">
+              <div className="flex items-center gap-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-lo-muted px-1 whitespace-nowrap">Intelligence Deep-Dive</h4>
+                <div className="h-[1px] w-full bg-lo-border" />
+              </div>
+              {aiLoading ? (
+                <div className="flex flex-col items-center justify-center h-56 rounded-[2rem] border border-dashed border-lo-border animate-pulse bg-white/[0.02]">
+                  <Loader2 className="h-10 w-10 text-lo-accent animate-spin mb-4" />
+                  <p className="text-[10px] font-black text-lo-muted uppercase tracking-[0.2em]">Processing Analytics...</p>
+                </div>
+              ) : aiText ? (
+                <div className="rounded-[2rem] bg-lo-accent/5 border border-lo-accent/10 p-8 relative">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Sparkles className="h-4 w-4 text-lo-accent" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-lo-accent">AI Synthesis Complete</span>
+                  </div>
+                  <p className="text-sm font-bold text-lo-text leading-loose whitespace-pre-wrap">
+                    {aiSummary || aiText}
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-[2rem] border-2 border-dashed border-lo-border/30 p-10 text-center flex flex-col items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-lo-muted/20 mb-4" />
+                  <p className="text-sm text-lo-muted mb-6 font-bold leading-relaxed max-w-xs">
+                    Synthesize your data to unlock behavioral patterns and conversion fixes.
+                  </p>
+                  {aiErr && (
+                    <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 px-3 py-1.5">
+                      <div className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-rose-400">
+                        API Check: {aiErr}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* AI Chat Interaction */}
+          <div className="pt-10 border-t border-lo-border">
+            <div className="relative group max-w-3xl mx-auto">
+              <div className="absolute -inset-1 bg-gradient-to-r from-lo-accent to-blue-600 rounded-2xl blur opacity-10 group-focus-within:opacity-30 transition-opacity" />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && runChat()}
+                  placeholder="Ask a specific intelligence query..."
+                  className="w-full rounded-xl border border-lo-border bg-lo-bg-soft/80 py-5 pl-8 pr-32 text-sm font-bold text-white placeholder:text-lo-muted/50 focus:border-lo-accent/50 focus:outline-none focus:ring-0 transition-all backdrop-blur-sm"
+                />
+                <button
+                  onClick={runChat}
+                  disabled={chatLoading || !question.trim()}
+                  className="absolute right-3 top-3 bottom-3 rounded-lg bg-lo-accent px-6 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all disabled:opacity-50"
+                >
+                  {chatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
+                </button>
+              </div>
+            </div>
+
+            {chatAnswer && (
+              <div className="mt-8 max-w-3xl mx-auto rounded-[1.5rem] bg-lo-elevated/50 border border-lo-border p-8 animate-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-1.5 w-1.5 rounded-full bg-lo-accent shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-lo-text">Intelligence Response</span>
+                </div>
+                <p className="text-sm font-bold text-lo-muted leading-loose whitespace-pre-wrap">
+                  {chatAnswer}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-        <dl className="grid gap-3 text-sm sm:grid-cols-3" translate="yes">
-          <div className="rounded-xl border border-lo-border bg-lo-elevated p-3">
-            <dt className="font-medium text-lo-accent">{t('termHealthScore')}</dt>
-            <dd className="mt-1 text-lo-muted">{t('termHealthScoreDef')}</dd>
-          </div>
-          <div className="rounded-xl border border-lo-border bg-lo-elevated p-3">
-            <dt className="font-medium text-lo-accent">{t('termRageClicks')}</dt>
-            <dd className="mt-1 text-lo-muted">{t('termRageClicksDef')}</dd>
-          </div>
-          <div className="rounded-xl border border-lo-border bg-lo-elevated p-3">
-            <dt className="font-medium text-lo-accent">{t('termScrollDepth')}</dt>
-            <dd className="mt-1 text-lo-muted">{t('termScrollDepthDef')}</dd>
-          </div>
-        </dl>
       </div>
-    </section>
+    </div>
   );
 }
