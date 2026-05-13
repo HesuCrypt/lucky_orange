@@ -153,8 +153,6 @@ function KPI({ label, value, color }: { label: string; value: string; color?: st
       )}>{value}</p>
     </div>
   );
-}</div>
-  );
 }
 
 function StatCard({ title, value, unit, icon, color }: { title: string; value: string; unit: string; icon: React.ReactNode; color: string }) {
