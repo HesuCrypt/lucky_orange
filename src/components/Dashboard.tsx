@@ -278,15 +278,17 @@ export function Dashboard() {
                     <h2 className="text-4xl font-black tracking-tight text-white">Executive Pulse</h2>
                     <p className="text-lo-muted text-sm font-medium">Cross-functional audit of revenue and behavioral health.</p>
                   </div>
-                  <ExecutiveCommandCenter data={data} />
-                  
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 space-y-8">
-                      <InsightsPanel data={data} />
-                      <AlertFeed pages={data.topCriticalPages} isLimited={data.isLimitedData} />
-                    </div>
-                    <div className="space-y-8">
-                      {data.importMeta && <ImportIssuesPanel meta={data.importMeta} />}
+                  <div className="space-y-10">
+                    <ExecutiveCommandCenter data={data} />
+                    <InsightsPanel data={data} />
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      <div className="lg:col-span-2">
+                        <AlertFeed pages={data.topCriticalPages} isLimited={data.isLimitedData} />
+                      </div>
+                      <div className="space-y-8">
+                        {data.importMeta && <ImportIssuesPanel meta={data.importMeta} />}
+                      </div>
                     </div>
                   </div>
                 </>

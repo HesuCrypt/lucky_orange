@@ -110,23 +110,23 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="glass-card rounded-[2.5rem] overflow-hidden border-white/5">
         {/* Header Section */}
-        <div className="bg-gradient-to-r from-lo-accent/10 via-transparent to-transparent p-10 border-b border-lo-border">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+        <div className="bg-gradient-to-r from-lo-accent/10 via-transparent to-transparent p-8 md:p-10 border-b border-lo-border">
+          <div className="flex items-center justify-between gap-8">
             <div className="flex items-center gap-5">
               <div className="h-14 w-14 rounded-2xl bg-lo-accent/20 flex items-center justify-center text-lo-accent shadow-lg shadow-lo-accent/10">
                 <BookOpen className="h-7 w-7" />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-white tracking-tight uppercase">{t('insightTitle')}</h3>
-                <p className="text-sm text-lo-muted font-bold tracking-wide mt-1">{t('insightSubtitle')}</p>
+                <h3 className="text-2xl font-black text-white tracking-tight uppercase leading-none">{t('insightTitle')}</h3>
+                <p className="text-sm text-lo-muted font-bold tracking-wide mt-2">{t('insightSubtitle')}</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={() => runAi('quick')}
                 disabled={aiLoading || !explainOk}
-                className="group flex items-center gap-2.5 rounded-xl bg-lo-accent px-6 py-3 text-xs font-black uppercase tracking-widest text-white hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50"
+                className="group flex items-center gap-2.5 rounded-xl bg-lo-accent px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all active:scale-95 disabled:opacity-50"
               >
                 {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 group-hover:animate-pulse" />}
                 {t('aiExplain')}
@@ -134,9 +134,9 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
               <button
                 onClick={() => runAi('detailed')}
                 disabled={aiLoading || !explainOk}
-                className="rounded-xl border border-lo-border bg-lo-elevated px-6 py-3 text-xs font-black uppercase tracking-widest text-lo-muted hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
+                className="rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-lo-text hover:text-white hover:bg-white/10 transition-all disabled:opacity-50"
               >
-                {t('detailedReport')}
+                Detailed Report
               </button>
             </div>
           </div>
