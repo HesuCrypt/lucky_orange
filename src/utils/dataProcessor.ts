@@ -623,10 +623,17 @@ export function parseCSV(csvString: string, fileName: string = 'Uploaded CSV'): 
           let linkedInsights: any[] = [];
           if (ordersData && processed.pages.length > 0) {
             ordersData.topProducts.slice(0, 50).forEach(product => {
-              const matchedPage = processed.pages.find(p => 
-                p.url.toLowerCase().includes(product.name.toLowerCase().replace(/\s+/g, '-')) ||
-                product.name.toLowerCase().includes(p.url.split('/').pop()?.replace(/-/g, ' ') || '___')
-              );
+              if (!product.name || typeof product.name !== 'string') return;
+              
+              const productNameLower = product.name.toLowerCase();
+              const productSlug = productNameLower.replace(/\s+/g, '-');
+              
+              const matchedPage = processed.pages.find(p => {
+                if (!p.url) return false;
+                const urlLower = p.url.toLowerCase();
+                return urlLower.includes(productSlug) || 
+                       productNameLower.includes(urlLower.split('/').pop()?.replace(/-/g, ' ') || '___');
+              });
               
               if (matchedPage) {
                 linkedInsights.push({

@@ -10,34 +10,33 @@ import {
   Info,
   RefreshCw,
   Cloud,
+  LayoutGrid,
+  ShoppingBag,
+  BarChart3,
+  Settings,
+  ShieldCheck,
+  ChevronRight,
+  Search,
 } from 'lucide-react';
 import { DashboardData } from '../types';
-import { parseCSV, processAnalyticsData, mergeDashboardData } from '../utils/dataProcessor';
+import { parseCSV, mergeDashboardData } from '../utils/dataProcessor';
 import { HeroHeader } from './HeroHeader';
 import { AlertFeed } from './AlertFeed';
 import { InsightsPanel } from './InsightsPanel';
 import { ImportIssuesPanel } from './ImportIssuesPanel';
 import { AuditLogPanel } from './AuditLogPanel';
+import { ExecutiveCommandCenter } from './ExecutiveCommandCenter';
 import { useLocale } from '../context/LocaleContext';
 import { appendAudit } from '../lib/auditLog';
-import {
-  getLuckyOrangeConfigFromEnv,
-  getLuckyOrangeStatus,
-  getLuckyOrangeAdapterFromEnv,
-  fetchLuckyOrangeAnalyticsWithRetry,
-} from '../services/luckyOrangeClient';
+import { cn } from '../lib/utils';
 
 const MetricsChart = lazy(() => import('./MetricsChart').then((m) => ({ default: m.MetricsChart })));
 const PageList = lazy(() => import('./PageList').then((m) => ({ default: m.PageList })));
 
 function ChartFallback() {
   return (
-    <div
-      className="mb-10 flex h-[300px] items-center justify-center rounded-3xl border border-lo-border bg-lo-panel text-sm text-lo-muted"
-      role="status"
-      aria-live="polite"
-    >
-      Loading chart…
+    <div className="flex h-[300px] items-center justify-center rounded-3xl border border-lo-border bg-lo-panel text-sm text-lo-muted">
+      Loading analytics...
     </div>
   );
 }
@@ -48,27 +47,15 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isUserData, setIsUserData] = useState(false);
-  const [isSyncingApi, setIsSyncingApi] = useState(false);
-  const [lastApiSyncAt, setLastApiSyncAt] = useState<string | null>(null);
-  const [syncState, setSyncState] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'executive' | 'pages' | 'sales' | 'audit'>('executive');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    document.documentElement.lang = 'en';
-  }, []);
 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         const cachedData = localStorage.getItem('lo_dashboard_data');
-        const cachedIsUserData = localStorage.getItem('lo_dashboard_is_user_data');
-
         if (cachedData) {
           setData(JSON.parse(cachedData));
-          setIsUserData(cachedIsUserData === 'true');
-        } else {
-          setData(null);
         }
       } catch (err) {
         setData(null);
@@ -100,22 +87,17 @@ export function Dashboard() {
 
       const mergedData = mergeDashboardData(parsedDatasets);
       setData(mergedData);
-      setIsUserData(true);
       appendAudit('upload', fileNames.join(', '));
 
       try {
         localStorage.setItem('lo_dashboard_data', JSON.stringify(mergedData));
-        localStorage.setItem('lo_dashboard_is_user_data', 'true');
       } catch (e) {
-        console.warn('Could not save to localStorage (file might be too large)');
+        console.warn('Could not save to localStorage');
       }
-      setError(null);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 4000);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to parse CSV file(s).';
-      setError(message);
-      console.error('CSV Parsing Error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to parse CSV file(s).');
     } finally {
       setIsLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -123,245 +105,248 @@ export function Dashboard() {
   };
 
   const handleReset = () => {
+    if (!window.confirm('Are you sure you want to clear all dashboard data?')) return;
     setData(null);
-    setIsUserData(false);
     setError(null);
-    setShowSuccess(false);
+    localStorage.removeItem('lo_dashboard_data');
     appendAudit('reset', 'Clear data');
-
-    try {
-      localStorage.removeItem('lo_dashboard_data');
-      localStorage.removeItem('lo_dashboard_is_user_data');
-    } catch {
-      // ignore
-    }
   };
-
-  const handlePrint = () => {
-    appendAudit('export_print', 'Print / save as PDF');
-    window.print();
-  };
-
-  const handleLuckyOrangeSync = async (opts?: { silent?: boolean }) => {
-    const silent = Boolean(opts?.silent);
-    setIsSyncingApi(true);
-    if (!silent) {
-      setError(null);
-      setShowSuccess(false);
-    }
-    setSyncState('Connecting to Lucky Orange API…');
-    try {
-      const config = getLuckyOrangeConfigFromEnv();
-      if (getLuckyOrangeStatus(config) !== 'ready') {
-        throw new Error(
-          'Lucky Orange API is not configured yet. Add LO_API_BASE_URL and LO_API_KEY to .env when your API plan is active.',
-        );
-      }
-      const adapter = getLuckyOrangeAdapterFromEnv();
-      setSyncState(`Fetching ${adapter.endpointPath} (with retry/backoff)…`);
-      const result = await fetchLuckyOrangeAnalyticsWithRetry(config, adapter, { retries: 3, initialBackoffMs: 800 });
-      const processed = processAnalyticsData(result.rows, false);
-      const total = new Intl.NumberFormat('en-US').format(processed.totalViews);
-      const summary = `${processed.pages.length} pages synced from Lucky Orange API with ${total} total pageviews.`;
-      const apiData: DashboardData = {
-        ...processed,
-        dataSource: {
-          fileName: 'Lucky Orange API',
-          dataType: 'full-analytics',
-          dataTypeLabel: 'Full Analytics',
-          identifierLabel: 'Page',
-          countLabel: 'Pageviews',
-          summary,
-          uploadedAt: new Date(),
-          sourceKind: 'lucky-orange-api',
-          syncedAt: result.fetchedAt,
-        },
-      };
-      setData(apiData);
-      setIsUserData(true);
-      setLastApiSyncAt(result.fetchedAt);
-      appendAudit('upload', `Lucky Orange API sync (${result.attempts} attempt${result.attempts > 1 ? 's' : ''})`);
-      try {
-        localStorage.setItem('lo_dashboard_data', JSON.stringify(apiData));
-        localStorage.setItem('lo_dashboard_is_user_data', 'true');
-      } catch {
-        // ignore localStorage limits
-      }
-      setSyncState(`Sync successful via ${result.endpoint} (${result.attempts} attempt${result.attempts > 1 ? 's' : ''})`);
-      if (!silent) {
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 4000);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lucky Orange API sync failed.';
-      setSyncState(`Sync failed: ${msg}`);
-      if (!silent) setError(msg);
-    } finally {
-      setIsSyncingApi(false);
-    }
-  };
-
-
 
   if (isLoading && !data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-lo-bg">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-2 border-lo-border border-t-lo-accent" />
-          <p className="animate-pulse text-sm text-lo-muted">{t('loading')}</p>
+          <p className="animate-pulse text-sm text-lo-muted">Initializing Command Center...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-lo-bg p-4 font-sans text-lo-text selection:bg-lo-accent-muted md:p-8">
-      <a
-        href="#dashboard-main"
-        className="fixed left-4 top-4 z-[100] -translate-y-full rounded-lg bg-lo-accent px-4 py-2 text-sm font-medium text-lo-bg opacity-0 transition-opacity focus:translate-y-0 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-lo-accent"
-      >
-        Skip to main content
-      </a>
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute left-[-15%] top-[-20%] h-[45%] w-[50%] rounded-full bg-lo-glow blur-[100px]" />
-        <div className="absolute bottom-[-25%] right-[-10%] h-[40%] w-[45%] rounded-full bg-lo-glow blur-[120px]" />
-      </div>
-
-      <header className="relative z-10 mx-auto max-w-7xl print:hidden" role="banner">
-        <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-lo-text">{t('dashboardTitle')}</h1>
-            <p className="mt-1 text-lo-muted">{t('dashboardSubtitle')}</p>
+    <div className="flex min-h-screen bg-lo-bg text-lo-text font-sans selection:bg-lo-accent/30 selection:text-white">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-lo-border bg-lo-bg-soft/50 backdrop-blur-xl print:hidden">
+        <div className="flex h-full flex-col p-6">
+          <div className="mb-10 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-lo-accent to-blue-600 shadow-lg shadow-lo-accent/20">
+              <ShieldCheck className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-black tracking-tight text-white uppercase">LUCKY<span className="text-lo-accent">BI</span></h1>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-lo-muted">Executive Suite</p>
+            </div>
           </div>
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:w-auto">
-            {isUserData && (
-              <button
-                type="button"
-                onClick={handleReset}
-                className="flex-none cursor-pointer rounded-xl border border-lo-border bg-lo-panel px-3 py-2.5 transition-colors hover:bg-lo-elevated-hover"
-                title={t('resetSample')}
-                aria-label={t('resetSample')}
-              >
-                <RotateCcw className="mx-auto h-4 w-4 text-lo-muted" />
-              </button>
-            )}
+          <nav className="flex-1 space-y-2">
+            <SidebarItem 
+              active={activeTab === 'executive'} 
+              onClick={() => setActiveTab('executive')} 
+              icon={<LayoutGrid className="h-5 w-5" />} 
+              label="Command Center" 
+            />
+            <SidebarItem 
+              active={activeTab === 'sales'} 
+              onClick={() => setActiveTab('sales')} 
+              icon={<ShoppingBag className="h-5 w-5" />} 
+              label="Sales & Revenue" 
+            />
+            <SidebarItem 
+              active={activeTab === 'pages'} 
+              onClick={() => setActiveTab('pages')} 
+              icon={<BarChart3 className="h-5 w-5" />} 
+              label="Page Insights" 
+            />
+            <SidebarItem 
+              active={activeTab === 'audit'} 
+              onClick={() => setActiveTab('audit')} 
+              icon={<FileText className="h-5 w-5" />} 
+              label="System Logs" 
+            />
+          </nav>
 
-            <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-lo-border bg-lo-elevated px-4 py-2.5 text-sm font-medium transition-colors hover:bg-lo-elevated-hover sm:flex-none md:flex-none">
-              <Upload className="h-4 w-4 text-lo-accent" aria-hidden />
-              <span>{t('uploadCsv')}</span>
-              <input ref={fileInputRef} type="file" accept=".csv" multiple className="hidden" onChange={handleFileUpload} />
-            </label>
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-lo-accent px-4 py-2.5 text-sm font-medium text-lo-bg transition-opacity hover:opacity-90 sm:flex-none"
+          <div className="mt-auto pt-6 border-t border-lo-border">
+            <button 
+              onClick={handleReset}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-rose-400 hover:bg-rose-500/10 transition-colors"
             >
-              <Printer className="h-4 w-4" aria-hidden />
-              <span>{t('exportReport')}</span>
+              <RotateCcw className="h-5 w-5" />
+              Clear Dataset
             </button>
           </div>
         </div>
-      </header>
+      </aside>
 
-      <main id="dashboard-main" className="relative z-10 mx-auto max-w-7xl" tabIndex={-1}>
-        {showSuccess && data?.dataSource && (
-          <div className="toast-enter mb-6 flex items-start gap-3 rounded-xl border border-emerald-500/35 bg-emerald-500/10 p-4 text-emerald-100 print:hidden">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
-            <div translate="yes">
-              <p className="font-medium">
-                {t('loadSuccess')}: {data.dataSource.fileName}
-              </p>
-              <p className="mt-1 text-sm text-emerald-200/85">
-                {t('detectedAs')} <span className="font-semibold">{data.dataSource.dataTypeLabel}</span> —{' '}
-                {data.pages.length} {data.dataSource.identifierLabel.toLowerCase()}s {t('found')}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {data?.dataSource && isUserData && (
-          <div className="mb-6 flex flex-wrap items-center gap-3 print:hidden">
-            <div className="flex items-center gap-2 rounded-xl border border-lo-border bg-lo-panel px-4 py-2">
-              <FileText className="h-4 w-4 text-lo-accent" aria-hidden />
-              <span className="text-sm text-lo-muted">{data.dataSource.fileName}</span>
-              <span className="rounded-full bg-lo-accent-muted px-2 py-0.5 text-xs font-medium text-lo-accent">
+      {/* Main Content */}
+      <main className="flex-1 pl-64 transition-all duration-300">
+        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-lo-border bg-lo-bg/80 px-8 backdrop-blur-md print:hidden">
+          <div className="flex items-center gap-4">
+            {data?.dataSource ? (
+              <div className="flex items-center gap-2 rounded-full border border-lo-border bg-lo-elevated px-4 py-1.5 text-xs font-medium text-lo-muted">
+                <FileSpreadsheet className="h-3.5 w-3.5 text-lo-accent" />
+                {data.dataSource.fileName}
+                <span className="mx-2 h-3 w-[1px] bg-lo-border" />
                 {data.dataSource.dataTypeLabel}
-              </span>
+              </div>
+            ) : (
+              <div className="text-sm font-bold text-lo-muted uppercase tracking-widest">Awaiting Data</div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {data && (
+              <button 
+                onClick={() => window.print()}
+                className="p-2.5 rounded-xl border border-lo-border bg-lo-elevated text-lo-muted hover:text-white transition-colors"
+                title="Print Report"
+              >
+                <Printer className="h-5 w-5" />
+              </button>
+            )}
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 rounded-xl bg-lo-accent px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-lo-accent/20 hover:scale-[1.02] active:scale-95 transition-all"
+            >
+              <Upload className="h-4 w-4" />
+              Upload CSV
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+              accept=".csv"
+              multiple
+            />
+          </div>
+        </header>
+
+        <div className="p-8 pb-24 mx-auto max-w-7xl">
+          {error && (
+            <div className="mb-8 flex items-center gap-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6 text-rose-400 animate-in slide-in-from-top-4">
+              <AlertOctagon className="h-6 w-6 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-bold">Processing Error</p>
+                <p className="text-xs opacity-80 mt-0.5">{error}</p>
+              </div>
+              <button 
+                onClick={() => setError(null)}
+                className="rounded-lg bg-rose-500/10 px-3 py-1.5 text-xs font-black uppercase tracking-widest hover:bg-rose-500/20"
+              >
+                Dismiss
+              </button>
             </div>
-            {data.dataSource.sourceKind === 'lucky-orange-api' && (
-              <div className="rounded-xl border border-lo-border bg-lo-panel px-3 py-2 text-xs text-lo-muted">
-                Live API source{(data.dataSource.syncedAt || lastApiSyncAt) ? ` · Synced ${new Date(data.dataSource.syncedAt || lastApiSyncAt || '').toLocaleString()}` : ''}
-              </div>
-            )}
-            {syncState && (
-              <div className="rounded-xl border border-lo-border bg-lo-panel px-3 py-2 text-xs text-lo-muted">
-                {syncState}
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {error && (
-          <div
-            className="mb-8 flex items-start gap-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-rose-100 print:hidden"
-            role="alert"
-          >
-            <AlertOctagon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
-            <p translate="yes">{error}</p>
-          </div>
-        )}
-
-        {data?.isLimitedData && isUserData && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-lo-border bg-lo-panel p-4 print:hidden">
-            <Info className="mt-0.5 h-5 w-5 shrink-0 text-lo-accent" aria-hidden />
-            <div>
-              <p className="font-medium text-lo-text">{t('limitedTitle')}</p>
-              <p className="mt-1 text-sm text-lo-muted" translate="yes">
-                {t('limitedBody')}
+          {!data ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-lo-accent/10 border border-lo-accent/20">
+                <Cloud className="h-12 w-12 text-lo-accent animate-bounce" />
+              </div>
+              <h2 className="text-5xl font-black tracking-tight text-white mb-4">Command Center</h2>
+              <p className="max-w-md text-lo-muted text-lg leading-relaxed mb-10">
+                Upload your Shopify Orders or Lucky Orange CSVs to generate a high-performance BI report.
               </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="glass-card rounded-[1.5rem] p-8 text-left hover:border-lo-accent/50 transition-all cursor-pointer group"
+                >
+                  <ShoppingBag className="h-8 w-8 text-emerald-400 mb-6 group-hover:scale-110 transition-transform" />
+                  <h3 className="text-xl font-bold text-white mb-2">Shopify Orders</h3>
+                  <p className="text-sm text-lo-muted">Map revenue to UX friction and find your most leaky product pages.</p>
+                </div>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="glass-card rounded-[1.5rem] p-8 text-left hover:border-lo-accent/50 transition-all cursor-pointer group"
+                >
+                  <BarChart3 className="h-8 w-8 text-blue-400 mb-6 group-hover:scale-110 transition-transform" />
+                  <h3 className="text-xl font-bold text-white mb-2">Behavioral Health</h3>
+                  <p className="text-sm text-lo-muted">Analyze rage clicks, dead clicks, and bounce rates site-wide.</p>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {activeTab === 'executive' && (
+                <>
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-4xl font-black tracking-tight text-white">Executive Pulse</h2>
+                    <p className="text-lo-muted text-sm font-medium">Cross-functional audit of revenue and behavioral health.</p>
+                  </div>
+                  <ExecutiveCommandCenter data={data} />
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                      <InsightsPanel data={data} />
+                      <AlertFeed data={data} />
+                    </div>
+                    <div className="space-y-8">
+                      <ImportIssuesPanel meta={data.importMeta} />
+                    </div>
+                  </div>
+                </>
+              )}
 
-        {data?.importMeta && isUserData && <ImportIssuesPanel meta={data.importMeta} />}
+              {activeTab === 'sales' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-4xl font-black tracking-tight text-white mb-2">Sales Intelligence</h2>
+                    <p className="text-lo-muted text-sm font-medium">Product performance and revenue distribution.</p>
+                  </div>
+                  <Suspense fallback={<ChartFallback />}>
+                    <MetricsChart data={data} />
+                  </Suspense>
+                </div>
+              )}
 
-        {data && (
-          <div className="print-container">
-            <div className="mb-8 hidden border-b pb-4 print:block">
-              <h1 className="text-3xl font-bold text-black">Analytics Health Report</h1>
-              <p className="text-gray-600">Generated on {new Date().toLocaleDateString()}</p>
+              {activeTab === 'pages' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-4xl font-black tracking-tight text-white mb-2">Experience Audit</h2>
+                    <p className="text-lo-muted text-sm font-medium">Deep-dive into page-level friction and health.</p>
+                  </div>
+                  <Suspense fallback={<ChartFallback />}>
+                    <PageList data={data} />
+                  </Suspense>
+                </div>
+              )}
+
+              {activeTab === 'audit' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-4xl font-black tracking-tight text-white mb-2">System Activity</h2>
+                    <p className="text-lo-muted text-sm font-medium">Audit trail of data imports and modifications.</p>
+                  </div>
+                  <AuditLogPanel />
+                </div>
+              )}
             </div>
-
-            <InsightsPanel data={data} />
-            <HeroHeader data={data} />
-            <AlertFeed pages={data.topCriticalPages} isLimited={data.isLimitedData} />
-            <Suspense fallback={<ChartFallback />}>
-              <MetricsChart data={data} />
-              <PageList pages={data.pages} dataSource={data.dataSource} isLimited={data.isLimitedData} />
-            </Suspense>
-          </div>
-        )}
-
-        {!data && !isLoading && !error && (
-          <div className="rounded-3xl border border-lo-border bg-lo-panel p-10 text-center">
-            <FileSpreadsheet className="mx-auto mb-4 h-16 w-16 text-lo-muted" aria-hidden />
-            <h3 className="mb-2 text-xl font-medium text-lo-text">{t('uploadPromptTitle')}</h3>
-            <p className="mx-auto mb-6 max-w-md text-lo-muted" translate="yes">
-              {t('uploadPromptBody')}
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 text-xs text-lo-muted">
-              <span className="rounded-full border border-lo-border bg-lo-elevated px-3 py-1">{t('tagHeatmaps')}</span>
-              <span className="rounded-full border border-lo-border bg-lo-elevated px-3 py-1">{t('tagForms')}</span>
-              <span className="rounded-full border border-lo-border bg-lo-elevated px-3 py-1">{t('tagSessions')}</span>
-              <span className="rounded-full border border-lo-border bg-lo-elevated px-3 py-1">{t('tagCustom')}</span>
-            </div>
-          </div>
-        )}
-
-        <AuditLogPanel />
+          )}
+        </div>
       </main>
     </div>
+  );
+}
+
+function SidebarItem({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all group",
+        active 
+          ? "bg-lo-accent text-white shadow-lg shadow-lo-accent/20" 
+          : "text-lo-muted hover:bg-lo-elevated hover:text-lo-text"
+      )}
+    >
+      <span className={cn(
+        "transition-transform group-hover:scale-110",
+        active ? "text-white" : "text-lo-accent"
+      )}>
+        {icon}
+      </span>
+      {label}
+    </button>
   );
 }

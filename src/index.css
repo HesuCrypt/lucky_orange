@@ -7,18 +7,18 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  /* Cohesive dark UI: one cool neutral base + single accent (cyan) */
-  --color-lo-bg: #070a10;
-  --color-lo-bg-soft: #0c101a;
-  --color-lo-panel: rgb(255 255 255 / 0.045);
-  --color-lo-elevated: rgb(255 255 255 / 0.065);
-  --color-lo-elevated-hover: rgb(255 255 255 / 0.095);
-  --color-lo-border: rgb(255 255 255 / 0.1);
-  --color-lo-text: #e9eef5;
-  --color-lo-muted: #8b98a8;
-  --color-lo-accent: #38bdf8;
-  --color-lo-accent-muted: rgb(56 189 248 / 0.14);
-  --color-lo-glow: rgb(56 189 248 / 0.08);
+  /* Premium Executive Palette: Deep Ocean + Electric Blue */
+  --color-lo-bg: #030712;
+  --color-lo-bg-soft: #0b1120;
+  --color-lo-panel: rgba(15, 23, 42, 0.6);
+  --color-lo-elevated: rgba(30, 41, 59, 0.4);
+  --color-lo-elevated-hover: rgba(51, 65, 85, 0.6);
+  --color-lo-border: rgba(255, 255, 255, 0.08);
+  --color-lo-text: #f8fafc;
+  --color-lo-muted: #94a3b8;
+  --color-lo-accent: #3b82f6;
+  --color-lo-accent-muted: rgba(59, 130, 246, 0.15);
+  --color-lo-glow: rgba(59, 130, 246, 0.1);
 }
 
 @layer utilities {
