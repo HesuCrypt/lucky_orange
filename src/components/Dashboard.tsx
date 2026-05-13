@@ -201,16 +201,7 @@ export function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    const config = getLuckyOrangeConfigFromEnv();
-    if (getLuckyOrangeStatus(config) !== 'ready') return;
-    if (data?.dataSource?.sourceKind !== 'lucky-orange-api') return;
-    const everyMs = 15 * 60 * 1000;
-    const id = window.setInterval(() => {
-      void handleLuckyOrangeSync({ silent: true });
-    }, everyMs);
-    return () => window.clearInterval(id);
-  }, [data?.dataSource?.sourceKind]);
+
 
   if (isLoading && !data) {
     return (
@@ -244,17 +235,6 @@ export function Dashboard() {
           </div>
 
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:w-auto">
-            <button
-              type="button"
-              onClick={handleLuckyOrangeSync}
-              disabled={isSyncingApi}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-lo-border bg-lo-panel px-4 py-2.5 text-sm font-medium text-lo-text transition-colors hover:bg-lo-elevated-hover disabled:opacity-60 sm:flex-none"
-              title="Sync latest metrics from Lucky Orange API"
-            >
-              {isSyncingApi ? <RefreshCw className="h-4 w-4 animate-spin text-lo-accent" /> : <Cloud className="h-4 w-4 text-lo-accent" />}
-              <span>{isSyncingApi ? 'Syncing API…' : 'Sync Lucky Orange API'}</span>
-            </button>
-
             {isUserData && (
               <button
                 type="button"
