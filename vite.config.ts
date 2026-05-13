@@ -7,7 +7,7 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   /** Only proxy when the Express API is running; otherwise Vite logs ECONNREFUSED for every /api call. */
   const apiProxy =
-    env.ENABLE_API_PROXY === 'true'
+    env.ENABLE_API_PROXY === 'true' || process.env.ENABLE_API_PROXY === 'true'
       ? {
           '/api': {
             target: `http://127.0.0.1:${env.API_PORT || '8787'}`,

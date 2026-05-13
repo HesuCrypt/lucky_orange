@@ -213,8 +213,6 @@ ${question}
   }
 });
 
-if (process.env.NODE_ENV !== 'production' || process.env.RUN_LOCAL === 'true') {
-  app.listen(PORT, () => {
-    console.log(`[api] http://localhost:${PORT}  (POST /api/explain, GET /api/health)`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`[api] http://localhost:${PORT}  (POST /api/explain, GET /api/health)`);
+});
