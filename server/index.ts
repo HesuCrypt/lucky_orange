@@ -13,8 +13,6 @@ const PORT = Number(process.env.API_PORT) || 8787;
 const looksLikeGroqKey = (key: string | undefined) => Boolean(key && key.startsWith('gsk_'));
 
 const app = express();
-export default app;
-
 app.use(express.json({ limit: '2mb' }));
 
 async function generateWithProvider(
@@ -220,3 +218,5 @@ if (!process.env.VERCEL) {
     console.log(`[api] http://localhost:${PORT}  (POST /api/explain, GET /api/health)`);
   });
 }
+
+export default app;

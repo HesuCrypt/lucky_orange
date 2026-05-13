@@ -1,2 +1,2 @@
-import app from '../server/index';
-export default app;
+import expressApp from '../server/index';
+export default expressApp;
